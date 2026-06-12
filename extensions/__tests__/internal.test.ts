@@ -487,10 +487,9 @@ describe("extractCandidateImagePaths", () => {
 
 describe("stripImagePaths", () => {
 	it("replaces a single path with placeholder", () => {
-		const result = stripImagePaths("see /tmp/pi-clipboard-abc.png here", [
-			"/tmp/pi-clipboard-abc.png",
-		]);
-		assert.equal(result, `see ${IMAGE_PATH_PLACEHOLDER} here`);
+		const p = "/tmp/pi-clipboard-abc.png";
+		const result = stripImagePaths(`see ${p} here`, [p]);
+		assert.equal(result, `see [ImagePath:${p}] here`);
 	});
 
 	it("replaces multiple paths", () => {
@@ -498,9 +497,10 @@ describe("stripImagePaths", () => {
 			"/tmp/a.png",
 			"/tmp/b.jpg",
 		]);
-		assert.ok(!result.includes("/tmp/a.png"));
-		assert.ok(!result.includes("/tmp/b.jpg"));
-		assert.equal(result.match(/\[image file/g)?.length, 2);
+		// Paths are wrapped in [ImagePath:...] — raw occurrences replaced
+		assert.equal((result.match(/\[ImagePath:/g) || []).length, 2);
+		assert.ok(result.includes("[ImagePath:/tmp/a.png]"));
+		assert.ok(result.includes("[ImagePath:/tmp/b.jpg]"));
 	});
 
 	it("handles empty paths array", () => {
@@ -513,7 +513,10 @@ describe("stripImagePaths", () => {
 			"/tmp/img.png.bak",
 			"/tmp/img.png",
 		]);
-		assert.ok(!result.includes("/tmp/img.png"));
+		// Both paths should be wrapped — each should appear exactly once inside [ImagePath:...]
+		assert.equal((result.match(/\[ImagePath:/g) || []).length, 2);
+		assert.ok(result.includes("[ImagePath:/tmp/img.png]"));
+		assert.ok(result.includes("[ImagePath:/tmp/img.png.bak]"));
 	});
 });
 
@@ -1825,16 +1828,18 @@ describe("Security: path traversal rejection", () => {
 
 	it("stripImagePaths escapes regex metacharacters safely", () => {
 		// A path containing regex metacharacters should not cause errors
-		const result = stripImagePaths("Image at /tmp/test(file).png", [
-			"/tmp/test(file).png",
-		]);
-		assert.ok(!result.includes("/tmp/test(file).png"));
-		assert.ok(result.includes(IMAGE_PATH_PLACEHOLDER));
+		const p = "/tmp/test(file).png";
+		const result = stripImagePaths(`Image at ${p}`, [p]);
+		// The path is now wrapped in [ImagePath:...] — raw occurrence is replaced
+		assert.ok(result.includes("[ImagePath:"));
+		assert.ok(result.includes(p)); // still present inside the wrapper
 	});
 
 	it("stripImagePaths handles path with $ and ^ safely", () => {
-		const result = stripImagePaths("/tmp/$test^.png", ["/tmp/$test^.png"]);
-		assert.ok(!result.includes("/tmp/$test^.png"));
+		const p = "/tmp/$test^.png";
+		const result = stripImagePaths("see ".concat(p, " here"), [p]);
+		assert.ok(result.includes("[ImagePath:"));
+		assert.ok(result.includes(p));
 	});
 });
 

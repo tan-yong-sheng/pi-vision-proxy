@@ -730,6 +730,14 @@ const IMAGE_EXT_ALT = "jpg|jpeg|png|gif|webp|bmp|tiff|tif|ico|avif";
 export const IMAGE_PATH_PLACEHOLDER =
 	"[image file — see vision proxy description]";
 
+/**
+ * Path-aware placeholder that preserves the original file path so the model
+ * can use it in tool calls like analyze_image.
+ */
+export function imageFilePlaceholder(filePath: string): string {
+	return `[Image: ${filePath}]`;
+}
+
 function mimeTypeForExt(filePath: string): string | undefined {
 	return EXT_TO_MIME[extname(filePath).toLowerCase()];
 }
@@ -926,19 +934,41 @@ export async function readImageFile(
 }
 
 /**
- * Replace detected image file paths in text with a placeholder.
+ * Replace detected image file paths in text with a path-aware placeholder
+ * so the model can still reference the file for tools like analyze_image.
+ * The format [ImagePath:<path>] is chosen so extractCandidateImagePaths does
+ * not re-detect it (the colon before the path is not in [\s"'()]).
+ */
+let _phCounter = 0;
+
+/**
+ * Replace detected image file paths in text with a path-aware placeholder
+ * so the model can still reference the file for tools like analyze_image.
+ * Uses a two-pass approach: unique tokens first, then replace with final format
+ * to avoid partial-path collisions (e.g. /tmp/a.png inside /tmp/a.png.bak).
  */
 export function stripImagePaths(
 	text: string,
 	paths: readonly string[],
 ): string {
-	// Sort longest-first to avoid partial replacements
+	if (paths.length === 0) return text;
+
+	// Pass 1: sort longest-first and replace each path with a unique token
 	const sorted = [...paths].sort((a, b) => b.length - a.length);
+	const tokens = new Map<string, string>();
 	let result = text;
 	for (const p of sorted) {
+		const token = `__VP_IMG_${++_phCounter}__`;
+		tokens.set(token, p);
 		const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		result = result.replace(new RegExp(escaped, "g"), IMAGE_PATH_PLACEHOLDER);
+		result = result.replace(new RegExp(escaped, "g"), token);
 	}
+
+	// Pass 2: replace tokens with path-aware placeholders
+	for (const [token, p] of tokens) {
+		result = result.replace(token, `[ImagePath:${p}]`);
+	}
+
 	return result;
 }
 
