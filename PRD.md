@@ -142,7 +142,7 @@ The proxy converts all three forms to pixels internally before cropping locally 
 
 **FR-1.4** Model override. Must be registered, must support image input. Agent-initiated overrides honoured even when `PI_VISION_PROXY_MODEL` is env-locked.
 
-**FR-1.5**
+**FR-1.5** *(removed — consent system removed in 1.6.0)*
 
 **FR-1.6** Persistence. Image bytes by sha256. Image dimensions are computed on first ingestion and stored in the in-memory `_imageMeta` map (see "Image metadata and dimensions" above). Tool results are not persisted as canonical descriptions. Result LRU keyed by `(sorted_image_hashes, crop_signature, question_hash, model_id)` — `crop_signature` is a stable hash over the resolved-pixels rectangle, so semantically equivalent crops in different forms hit the same cache entry.
 
@@ -310,7 +310,7 @@ Specifying more than one form per crop entry is rejected with a clear error mess
 
 **FR-3.3** `redescribe` is sugar for `describe <hash> --save` with no question and no crop.
 
-**FR-3.4**
+**FR-3.4** *(removed — consent system removed in 1.6.0)*
 
 **FR-3.5** TUI output uses distinct visual style with `[Vision Proxy]` prefix.
 

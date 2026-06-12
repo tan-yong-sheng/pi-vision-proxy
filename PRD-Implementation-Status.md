@@ -152,6 +152,7 @@
 | 1.4.0-beta.3 | Feature 2 (`maxBatch=1` default), adaptive prompt, hints | ✅ Complete |
 | 1.4.0-beta.4 | Feature 4 (grounding registry, Tier 1 list) | ✅ Complete |
 | 1.4.0 | Flip `tool=on`, `maxBatch=4` | ✅ Complete |
+| 1.6.0 | Remove consent system; image-only (no video/audio); rename package to `pi-vision-proxy`; migrate to pnpm | ✅ Complete |
 
 ---
 
@@ -159,7 +160,8 @@
 
 | Date | Change |
 |---|---|
-| 2026-05-03 | Added 33 mock-based integration tests covering fence output, neutralisation, crop pipeline, ImageScript round-trip, pHash, describe parsing, filename hints, GA config defaults. 213 tests total, all passing. |: Flipped defaults (tool=on, maxBatch=4). Security review: sanitized question in describe handler, removed dead pHash stub. Updated README.md. 180 tests passing. |
+| 2026-06-12 | Docs updated: removed outdated `/multimodal-proxy`, video/audio, consent system references. Migrated from npm to pnpm. 230 tests passing. |
+| 2026-05-03 | Added 33 mock-based integration tests covering fence output, neutralisation, crop pipeline, ImageScript round-trip, pHash, describe parsing, filename hints, GA config defaults. 213 tests total, all passing. |
 | 2026-05-03 | Milestone beta.4: Feature 4 grounding-models slash commands (add/remove/list/reset), excluded-model warnings, parseGroundingFormat validator. 180 tests passing. |
 | 2026-05-03 | Milestone beta.3: Feature 2 (multi-image batched comparison). Auto-proxy joint descriptions for N≥2 images, adaptive joint prompt with comparison structure, filename hint patterns (Appendix D), pHash infrastructure, buildJointDescriptionFence. 172 tests passing. |
 | 2026-05-03 | Milestone beta.2: Feature 3 (`/vision-proxy describe` + `redescribe`) fully implemented. parseDescribeArgs with all three crop forms, --question/--crop/--model/--save flags, [Vision Proxy] TUI prefix, vision_proxy.command telemetry. 152 tests passing. |
