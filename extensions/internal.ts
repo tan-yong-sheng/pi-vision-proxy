@@ -857,6 +857,11 @@ export async function isPathAllowed(filePath: string): Promise<boolean> {
 	if (tmp && isInsideOrSame(resolved, tmp)) return true;
 	if (cwd && isInsideOrSame(resolved, cwd)) return true;
 
+	// Always allow ~/.pi (the Pi agent config directory) without requiring PI_VISION_PROXY_ALLOW_HOME.
+	// This is where Pi stores persistent data that agents need to access.
+	const piDir = await canonical(join(os.homedir?.() ?? "/", ".pi")).catch(() => null);
+	if (piDir && isInsideOrSame(resolved, piDir)) return true;
+
 	if (process.env.PI_VISION_PROXY_ALLOW_HOME === "1") {
 		const home = await canonical(os.homedir?.());
 		if (home && isInsideOrSame(resolved, home)) return true;
@@ -873,16 +878,10 @@ export async function isPathAllowed(filePath: string): Promise<boolean> {
 export async function readImageFileWithReason(
 	rawPath: string,
 ): Promise<ReadImageResult> {
-	// Strip common wrapping: backticks, single/double quotes, and leading/trailing whitespace.
-	// LLMs frequently wrap paths in backticks (e.g. ` /tmp/image.png `) which breaks extname().
-	let filePath = rawPath.trim();
-	if (
-		(filePath.startsWith("`") && filePath.endsWith("`")) ||
-		(filePath.startsWith('"') && filePath.endsWith('"')) ||
-		(filePath.startsWith("'") && filePath.endsWith("'"))
-	) {
-		filePath = filePath.slice(1, -1).trim();
-	}
+	// Strip common wrapping: backticks, quotes, brackets, and whitespace.
+	// LLMs frequently wrap paths (e.g. ` /tmp/image.png ` or ["/tmp/image.png"]) which breaks extname().
+	// Extract the actual filesystem path by stripping non-path characters from both ends.
+	const filePath = rawPath.replace(/^[\s"'`[\]\\]+/, "").replace(/[\s"'`[\]\\]+$/, "").trim();
 
 	const mimeType = mimeTypeForExt(filePath);
 	if (!mimeType) return { image: null, reason: "not-an-image" };
