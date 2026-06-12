@@ -3,7 +3,7 @@
  * Type-only imports keep this file free of peer-dep runtime requirements.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { basename, dirname, extname, join, parse, relative } from "node:path";
 import type { ImageContent as PiAiImage } from "@earendil-works/pi-ai";
@@ -798,6 +798,7 @@ function maxImageFileBytes(): number {
 export type ReadImageReason =
 	| "not-an-image"
 	| "denied"
+	| "not-found"
 	| "unreadable"
 	| "empty"
 	| "too-large";
@@ -870,13 +871,31 @@ export async function isPathAllowed(filePath: string): Promise<boolean> {
  * Read an image file and return as base64 ImageContent with a structured reason on failure.
  */
 export async function readImageFileWithReason(
-	filePath: string,
+	rawPath: string,
 ): Promise<ReadImageResult> {
+	// Strip common wrapping: backticks, single/double quotes, and leading/trailing whitespace.
+	// LLMs frequently wrap paths in backticks (e.g. ` /tmp/image.png `) which breaks extname().
+	let filePath = rawPath.trim();
+	if (
+		(filePath.startsWith("`") && filePath.endsWith("`")) ||
+		(filePath.startsWith('"') && filePath.endsWith('"')) ||
+		(filePath.startsWith("'") && filePath.endsWith("'"))
+	) {
+		filePath = filePath.slice(1, -1).trim();
+	}
+
 	const mimeType = mimeTypeForExt(filePath);
 	if (!mimeType) return { image: null, reason: "not-an-image" };
 
 	if (!(await isPathAllowed(filePath)))
 		return { image: null, reason: "denied" };
+
+	// Check the file exists on disk before attempting to read.
+	try {
+		await access(filePath);
+	} catch {
+		return { image: null, reason: "not-found" };
+	}
 
 	let content: Buffer;
 	try {

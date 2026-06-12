@@ -428,6 +428,8 @@ function describeReadReason(reason: ReadImageReason, bytes?: number): string {
 			return `${bytes ?? "?"} bytes exceeds limit (override with PI_VISION_PROXY_MAX_IMAGE_BYTES)`;
 		case "not-an-image":
 			return "unsupported extension";
+		case "not-found":
+			return "file not found";
 		default:
 			return reason;
 	}
